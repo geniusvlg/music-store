@@ -62,12 +62,6 @@ app.get("/setup-video-page", (req, res) => {
   });
 });
 
-app.get("/get-stripe-publishable-key", (req, res) => {
-  res.send({
-    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
-  });
-});
-
 const calculateOrderAmount = (items) => {
     let totalPrice = 0;
       items.forEach(item => {
@@ -96,7 +90,6 @@ const calculateOrderAmount = (items) => {
 
       return  (items.length > 1) ? totalPrice * 0.8 : totalPrice;
 };
-
 
 app.post("/create-payment-intent", async (req, res) => {
   console.log("FETCH");
@@ -177,6 +170,10 @@ app.get("/concert-success", (req, res) => {
   console.log(path);
   res.sendFile(path);
 })
+
+
+
+
 
 // Challenge Section 3
 // Challenge section 3: shows the lesson sign up page.
