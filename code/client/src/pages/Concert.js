@@ -4,6 +4,7 @@ import { getPriceDollars } from "../components/Util";
 import "../css/checkout.scss";
 import { config } from "../components/mock_data";
 import { concertSetup } from "../Services/concert";
+import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 
 //Concert Ticket Component
 /*
@@ -13,11 +14,26 @@ import { concertSetup } from "../Services/concert";
 const MIN_TIXX = 1; //min number of tickets user can buy
 const MAX_TIXX = 10; //max number of tickets user can buy
 
-const Concert = () => {
+const fetchCheckoutSession = async ({quantity, headline}) => {
+  
+  return fetch("/create-checkout-session", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      quantity: quantity,
+      headline: headline
+    })
+  }).then((res) => res.json());
+} 
+
+const Concert = (context) => {
   const [tickets, setTickets] = useState(1); //number of tickets user want to buy
   const [total, setTotal] = useState("$0"); //total price to pay
   const [data, setData] = useState({});
   const t = useTranslation()[0];
+  const stripe = useStripe();
 
   const increaseTicketCount = () => {
     if (tickets < MAX_TIXX) {
@@ -47,6 +63,26 @@ const Concert = () => {
   useEffect(() => {
     setTotal(getPriceDollars(tickets * data.basePrice, true));
   }, [data, tickets]);
+
+  const handleClick = async (event) => {
+
+    console.log(t("headline"))
+    // Call your backend to create the Checkout session.
+    const { sessionId } = await fetchCheckoutSession({
+      quantity: tickets,
+      headline: t("headline")
+    });
+    // When the customer clicks on the button, redirect them to Checkout.
+    const { error } = await stripe.redirectToCheckout({
+      sessionId,
+    });
+    // If `redirectToCheckout` fails due to a browser or network
+    // error, display the localized error message to your customer
+    // using `error.message`.
+    if (error) {
+      context.history.push("/concert")
+    }
+  };
 
   return (
     <main className="main-checkout">
@@ -93,7 +129,7 @@ const Concert = () => {
               </button>
             </div>
             <p className="sr-legal-text">{t("sr-legal-text")}</p>
-            <button className="button" id="submit">
+            <button className="button" id="submit" onClick={handleClick}>
               {t("button.submit", { total: total })}
             </button>
           </section>
