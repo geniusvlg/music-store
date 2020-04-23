@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Link } from "@reach/router";
-import CardSection from "./CardSection";
 import {useStripe, useElements, CardElement} from '@stripe/react-stripe-js';
 import '../css/cardsection.css'
 
