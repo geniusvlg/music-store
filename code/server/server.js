@@ -3,6 +3,7 @@ const app = express();
 const { resolve } = require("path");
 // Replace if using a different env file or config
 const env = require("dotenv").config({ path: "./.env" });
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const allitems = {};
 
 // const MIN_ITEMS_FOR_DISCOUNT = 2;
@@ -61,6 +62,92 @@ app.get("/setup-video-page", (req, res) => {
   });
 });
 
+const calculateOrderAmount = (items) => {
+    let totalPrice = 0;
+      items.forEach(item => {
+        switch(item.itemId) {
+            case 'guitar':
+                totalPrice += 1500;
+                break;
+            case 'piano':
+                totalPrice += 2500;
+                break;
+            case 'ukelele':
+                totalPrice += 1000;
+                break;
+            case 'drums':
+                totalPrice += 3000;
+                break;
+            case 'banjo':
+                totalPrice += 3500;
+                break;
+            case 'g2':
+                totalPrice += 1500;
+                break;
+        }
+
+      });
+
+      return  (items.length > 1) ? totalPrice * 0.8 : totalPrice;
+};
+
+app.post("/create-payment-intent", async (req, res) => {
+  console.log("FETCH");
+  const { items } = req.body;
+  // Create a PaymentIntent with the order amount and currency
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: calculateOrderAmount(items),
+    currency: 'usd'
+  });
+
+  // Send publishable key and PaymentIntent details to client
+  res.send({
+    clientSecret: paymentIntent.client_secret
+  });
+});
+
+//app.post("/create-payment-intent", (req, res) => {
+//    res.send('Hello World');
+//});
+
+app.post("/webhook", async (req, res) => {
+  let data, eventType;
+
+  // Check if webhook signing is configured.
+  if (process.env.STRIPE_WEBHOOK_SECRET) {
+    // Retrieve the event by verifying the signature using the raw body and secret.
+    let event;
+    let signature = req.headers["stripe-signature"];
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.rawBody,
+        signature,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      console.log(`⚠️  Webhook signature verification failed.`);
+      return res.sendStatus(400);
+    }
+    data = event.data;
+    eventType = event.type;
+  } else {
+    // Webhook signing is recommended, but if the secret is not configured in `config.js`,
+    // we can retrieve the event data directly from the request body.
+    data = req.body.data;
+    eventType = req.body.type;
+  }
+
+  if (eventType === "payment_intent.succeeded") {
+    // Funds have been captured
+    // Fulfill any orders, e-mail receipts, etc
+    // To cancel the payment after capture you will need to issue a Refund (https://stripe.com/docs/api/refunds)
+    console.log("💰 Payment captured!");
+  } else if (eventType === "payment_intent.payment_failed") {
+    console.log("❌ Payment failed.");
+  }
+  res.sendStatus(200);
+});
+
 
 // Challenge Section 2
 // Challenge section 2: shows the concert tickets page.
@@ -83,6 +170,10 @@ app.get("/concert-success", (req, res) => {
   console.log(path);
   res.sendFile(path);
 })
+
+
+
+
 
 // Challenge Section 3
 // Challenge section 3: shows the lesson sign up page.

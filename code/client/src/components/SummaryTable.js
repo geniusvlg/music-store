@@ -78,7 +78,7 @@ const SummaryTable = (props) => {
       {
         //Component to generate payment form
       }
-      <PaymentForm active={active} />
+      <PaymentForm active={active} items={selectedItems}/>
     </div>
   );
 };

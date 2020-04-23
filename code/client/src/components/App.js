@@ -8,11 +8,18 @@ import Concert from "../pages/Concert";
 import Lessons from "../pages/Lessons";
 import ConcertSuccess from "../pages/ConcertSuccess";
 import AccountUpdate from "../pages/AccountUpdate";
+import {Elements} from '@stripe/react-stripe-js';
+import {loadStripe} from '@stripe/stripe-js';
 
 import "../css/normalize.scss";
 
+
+const stripePromise = loadStripe("pk_test_rER8AHTNoETz7UaT8bHbwXuA00zvCXYGUr");
+
 const App = () => {
+   
   return (
+    <Elements stripe={stripePromise}>
     <React.StrictMode>
       <Suspense fallback="loading">
         <header>
@@ -41,6 +48,7 @@ const App = () => {
         </Router>
       </Suspense>
     </React.StrictMode>
+    </Elements>
   );
 };
 
