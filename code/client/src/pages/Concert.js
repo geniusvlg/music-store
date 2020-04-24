@@ -4,7 +4,7 @@ import { getPriceDollars } from "../components/Util";
 import "../css/checkout.scss";
 import { config } from "../components/mock_data";
 import { concertSetup } from "../Services/concert";
-import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
+import { useStripe } from '@stripe/react-stripe-js';
 
 //Concert Ticket Component
 /*

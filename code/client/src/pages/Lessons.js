@@ -22,6 +22,7 @@ const Lessons = () => {
   const [selected, setSelected] = useState(-1); //index of selected session
   const [details, setDetailes] = useState(""); //details about selected session
 
+
   //format session's date
   const formatSession = (index, id, session, time) => {
     let date = session.getDate();
@@ -61,6 +62,7 @@ const Lessons = () => {
 
     setSessions(sessions.concat(items));
   }, []);
+
 
   return (
     <main className="main-lessons">

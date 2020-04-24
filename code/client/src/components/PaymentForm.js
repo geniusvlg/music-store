@@ -32,6 +32,7 @@ function PaymentForm(props) {
   const [email, setEmail] = useState("huy.nguyen@wizeline.com");
   const [paymentId, setPaymentId] = useState(null);
   const [status, setStatus] = useState("failed");
+  const [loading, setLoading] = useState("false")
 
   const handleNameChange = (e) => {
     setName(e.target.value);
@@ -43,6 +44,7 @@ function PaymentForm(props) {
 
   const submitPayment = (e) => {
     e.preventDefault();
+    setLoading("true");
 
     const requestOptions = {
         method: "POST",
@@ -81,6 +83,7 @@ function PaymentForm(props) {
       if (result.paymentIntent.status === 'succeeded') {
         setPaymentId(result.paymentIntent.id)
         setStatus(result.paymentIntent.status)
+        setLoading("false");
 
         // Show a success message to your customer
         // There's a risk of the customer closing tohe window before callback
@@ -133,8 +136,8 @@ function PaymentForm(props) {
           <div className="sr-field-error" id="card-errors" role="alert"></div>
         </div>
         <button id="submit" onClick={submitPayment}>
-          <div className="spinner hidden" id="spinner"></div>
-          <span id="button-text hidden">Purchase</span>
+          <div className={`spinner ${loading === "false" ? "hidden" : ""}`} id="spinner"></div>
+          <span id="button-text" className={`${loading === "true" ? "hidden" : ""}`}>Purchase</span>
         </button>
         <div className="sr-legal-text">
           Your card will be immediately chargedx  

@@ -1,15 +1,69 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "@reach/router";
+import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 
 //Registration Form Component, process user info for online session.
 
 const RegistrationForm = (props) => {
+  const [setupIntent, setSetupIntent] = useState("");
+  const stripe = useStripe();
+  const [email, setEmail] = useState("");
+  const elements = useElements();
+  const [cardSetupStatus, setCardSetupStatus] = useState("");
+  const [loading, setLoading] = useState("false")
+
+  useEffect(() => {
+
+      const requestOptions = {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      };
+
+        fetch("/create-setup-intent", requestOptions)
+        .then(response => {return response.json()})
+        .then(setupIntent => {setSetupIntent(setupIntent); console.log(setupIntent)})
+  }, []);
+
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+  }
+
+  const signUpPayment = (e) => {
+    e.preventDefault();
+    setLoading("true");
+
+    stripe
+      .confirmCardSetup(setupIntent.client_secret, {
+        payment_method: {
+          card: elements.getElement(CardElement),
+          billing_details: { email: email }
+        }
+      })
+      .then(function(result) {
+        if (result.error) {
+          console.log(result.error.message);
+          setCardSetupStatus("failed")
+        } else {
+          // The PaymentMethod was successfully set up
+          console.log("RESULT")
+          setCardSetupStatus(result.setupIntent.status)
+          setLoading("false");
+          console.log(result)
+        
+        }
+      });
+
+  };
+
+
   const { selected, details } = props;
   return (
     <div className="sr-main">
       <div
         className={`sr-payment-form payment-view ${
-          selected === -1 ? "hidden" : ""
+          selected === -1 ? "hidden" : `${cardSetupStatus === "succeeded" ? "hidden" : ""}`
         }`}
       >
         <h3>Registration details</h3>
@@ -33,10 +87,13 @@ const RegistrationForm = (props) => {
                 id="email"
                 placeholder="Email"
                 autoComplete="cardholder"
+                onChange={handleEmailChange}
               />
             </div>
             <div className="sr-combo-inputs-row">
-              <div className="sr-input sr-card-element"></div>
+              <div className="sr-input sr-card-element">
+                <CardElement />
+              </div>
             </div>
           </div>
           <div className="sr-field-error" id="card-errors" role="alert"></div>
@@ -52,9 +109,9 @@ const RegistrationForm = (props) => {
             <span id="account_link"></span>.
           </div>
         </div>
-        <button id="submit">
-          <div className="spinner hidden" id="spinner"></div>
-          <span id="button-text">Request Lesson</span>
+        <button id="submit" onClick={signUpPayment}>
+          <div className={`spinner ${loading === "false" ? "hidden" : ""}`} id="spinner"></div>
+          <span id="button-text" className={`${loading === "true" ? "hidden" : ""}`}>Request Lesson</span>
         </button>
         <div className="sr-legal-text">
           Your card will not be charged. By registering, you hold a session slot
@@ -62,12 +119,12 @@ const RegistrationForm = (props) => {
         </div>
       </div>
 
-      <div className="sr-section hidden completed-view">
+      <div className={`sr-section completed-view ${cardSetupStatus === "succeeded" ? "" : "hidden"}`}>
         <h3 id="signup-status">
           Woohoo! They are going to call you the shredder.{" "}
         </h3>
         <p>
-          We've created a customer account with an id of{" "}
+          We've created a customer account with an id of {setupIntent.id}
           <span id="customer-id"></span> and saved the card ending in{" "}
           <span id="last4"></span>
         </p>
@@ -75,7 +132,7 @@ const RegistrationForm = (props) => {
           Please check your email at <span id="customer_email"></span> for a
           welcome letter.
         </p>
-        <Link to="/lessons">
+        <Link to="/lessons" onClick={() => window.location.reload()}>
           <button>Sign up again under a different email address</button>
         </Link>
       </div>
