@@ -214,6 +214,65 @@ app.get("/account-update/:customer_id", (req, res) => {
 });
 
 
+app.post("/create-setup-intent", async (req, res) => {
+  const userEmail = req.body.email
+
+  const customers = await stripe.customers.list()
+
+  const findCustomer = (customers) => {
+    return  customers.find(customer => {
+      return customer.email === userEmail
+    })
+  }
+
+  const validCustomer = findCustomer(customers.data)
+
+  if(validCustomer) {
+    res.send({
+        error: {
+          message: 'user exist',
+          id: validCustomer.id
+        }
+    })
+  } else {
+      const customer = await stripe.customers.create({
+        email: userEmail
+      });
+
+      res.send(await stripe.setupIntents.create({
+        customer: customer.id,
+        metadata: {
+          first_lesson: req.body.date
+        }
+      }));
+  }
+
+});
+
+app.get("/find-customer/:customer_id", async(req, res) => {
+
+  const customer_id = req.params.customer_id
+
+  const customers = await stripe.customers.list()
+
+  const findCustomer = (customers) => {
+    return  customers.find(customer => {
+      return customer.id === customer_id
+    })
+  }
+
+  const currCustomer = findCustomer(customers.data)
+
+  const customer_card = await stripe.customers.listSources(
+    customer_id,
+    {object: 'card', limit: 3},
+    function(err, cards) {
+      console.log(cards)
+    }
+  )
+
+  res.send(findCustomer(customers.data))
+})
 // Challenge section 3: '/schedule-lesson'
 // Authorize a payment for a lesson
 //

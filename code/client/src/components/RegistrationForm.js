@@ -5,35 +5,59 @@ import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 //Registration Form Component, process user info for online session.
 
 const RegistrationForm = (props) => {
+  const { selected, details } = props; 
   const [setupIntent, setSetupIntent] = useState("");
+  const [status, setStatus] = useState("");
   const stripe = useStripe();
   const [email, setEmail] = useState("");
   const elements = useElements();
-  const [cardSetupStatus, setCardSetupStatus] = useState("");
   const [loading, setLoading] = useState("false")
-
-  useEffect(() => {
-
-      const requestOptions = {
-        method: "post",
-        headers: {
-          "Content-Type": "application/json"
-        }
-      };
-
-        fetch("/create-setup-intent", requestOptions)
-        .then(response => {return response.json()})
-        .then(setupIntent => {setSetupIntent(setupIntent); console.log(setupIntent)})
-  }, []);
+  const [id, setId] = useState("")
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
   }
 
-  const signUpPayment = (e) => {
-    e.preventDefault();
-    setLoading("true");
+  const createSetupIntent = () => {
+      setLoading("true");
+     const requestOptions = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          date: props.date,
+          email: email
+        })
+      };
 
+        fetch("/create-setup-intent", requestOptions)
+        .then(response => {return response.json()})
+        .then(setupIntent => {
+          // console.log("successfully")
+          // console.log(setupIntent)
+          // setSetupIntent(setupIntent)
+          // signUpPayment(setupIntent); 
+          setSetupIntent(setupIntent)
+
+          try {
+            signUpPayment(setupIntent); 
+          } catch (err) {
+             setId(setupIntent.error.id)
+             setLoading("false")
+             setStatus("failed")
+          }
+
+        })
+        // .catch(error => { 
+        //   setLoading("false")
+        //   setSetupIntent("failed")
+        //   console.log(error.message)
+        //   setCustomerId(error.id)
+        // });
+  }
+
+  const signUpPayment = (setupIntent) => {
     stripe
       .confirmCardSetup(setupIntent.client_secret, {
         payment_method: {
@@ -44,26 +68,22 @@ const RegistrationForm = (props) => {
       .then(function(result) {
         if (result.error) {
           console.log(result.error.message);
-          setCardSetupStatus("failed")
         } else {
           // The PaymentMethod was successfully set up
           console.log("RESULT")
-          setCardSetupStatus(result.setupIntent.status)
           setLoading("false");
           console.log(result)
-        
+          setStatus("succeeded")
         }
       });
 
   };
-
-
-  const { selected, details } = props;
+    
   return (
     <div className="sr-main">
       <div
         className={`sr-payment-form payment-view ${
-          selected === -1 ? "hidden" : `${cardSetupStatus === "succeeded" ? "hidden" : ""}`
+          selected === -1 ? "hidden" : `${status === "succeeded" ? "hidden" : ""}`
         }`}
       >
         <h3>Registration details</h3>
@@ -98,18 +118,17 @@ const RegistrationForm = (props) => {
           </div>
           <div className="sr-field-error" id="card-errors" role="alert"></div>
           <div
-            className="sr-field-error"
+            className={`sr-field-error ${status === "failed" ? "" : "hidden"}`}
             id="customer-exists-error"
             role="alert"
-            hidden
           >
-            A customer with the email address of{" "}
-            <span id="error_msg_customer_email"></span> already exists. If you'd
-            like to update the card on file, please visit
-            <span id="account_link"></span>.
+            A customer with the email address of
+            <span id="error_msg_customer_email"> {email}</span> already exists. If you'd
+            like to update the card on file, please visit 
+             <a id="account_link" href={"/account-update/" + id} style={{color: "blue", textDecoration: 'underline'}}> this</a>
           </div>
         </div>
-        <button id="submit" onClick={signUpPayment}>
+        <button id="submit" onClick={createSetupIntent}>
           <div className={`spinner ${loading === "false" ? "hidden" : ""}`} id="spinner"></div>
           <span id="button-text" className={`${loading === "true" ? "hidden" : ""}`}>Request Lesson</span>
         </button>
@@ -119,17 +138,17 @@ const RegistrationForm = (props) => {
         </div>
       </div>
 
-      <div className={`sr-section completed-view ${cardSetupStatus === "succeeded" ? "" : "hidden"}`}>
+      <div className={`sr-section completed-view ${status === "succeeded" ? "" : "hidden"}`}>
         <h3 id="signup-status">
           Woohoo! They are going to call you the shredder.{" "}
         </h3>
         <p>
-          We've created a customer account with an id of {setupIntent.id}
+          We've created a customer account with an id of {setupIntent.customer}
           <span id="customer-id"></span> and saved the card ending in{" "}
           <span id="last4"></span>
         </p>
         <p>
-          Please check your email at <span id="customer_email"></span> for a
+          Please check your email at <span id="customer_email">{email}</span> for a
           welcome letter.
         </p>
         <Link to="/lessons" onClick={() => window.location.reload()}>
