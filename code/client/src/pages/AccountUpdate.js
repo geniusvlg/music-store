@@ -19,6 +19,14 @@ const AccountUpdate = (props) => {
     setup();
   }, []);
 
+  useEffect(() => {
+
+    console.log("iddddddddddd")
+
+    fetch("/find-customer/" + props.id)
+    .then(user => {console.log(user)})
+  });
+
   return (
     <div className="sr-body">
       <div className="eco-items" id="account-information">

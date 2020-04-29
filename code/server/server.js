@@ -171,9 +171,33 @@ app.get("/concert-success", (req, res) => {
   res.sendFile(path);
 })
 
+app.post("/create-checkout-session", async (req, res) => {
+  const domainURL = process.env.DOMAIN;
 
+  const { quantity, headline, locale } = req.body;
 
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: process.env.PAYMENT_METHODS.split(', '),
+    locale: locale,
+    line_items: [
+      {
+        name: headline,
+        images: ['https://picsum.photos/300/300?random=4'],
+        quantity: quantity,
+        currency: process.env.CURRENCY,
+        amount: process.env.BASE_PRICE, // Keep the amount on the server to prevent customers from manipulating on client
+      },
+    ],
+    // ?session_id={CHECKOUT_SESSION_ID} means the redirect will have the session ID set as a query param
+    success_url: `${domainURL}/concert-success/:{CHECKOUT_SESSION_ID}`,
+    cancel_url: `${domainURL}/canceled.html`,
+  });
 
+  res.send({
+    sessionId: session.id,
+  });
+
+})
 
 // Challenge Section 3
 // Challenge section 3: shows the lesson sign up page.
@@ -190,6 +214,65 @@ app.get("/account-update/:customer_id", (req, res) => {
 });
 
 
+app.post("/create-setup-intent", async (req, res) => {
+  const userEmail = req.body.email
+
+  const customers = await stripe.customers.list()
+
+  const findCustomer = (customers) => {
+    return  customers.find(customer => {
+      return customer.email === userEmail
+    })
+  }
+
+  const validCustomer = findCustomer(customers.data)
+
+  if(validCustomer) {
+    res.send({
+        error: {
+          message: 'user exist',
+          id: validCustomer.id
+        }
+    })
+  } else {
+      const customer = await stripe.customers.create({
+        email: userEmail
+      });
+
+      res.send(await stripe.setupIntents.create({
+        customer: customer.id,
+        metadata: {
+          first_lesson: req.body.date
+        }
+      }));
+  }
+
+});
+
+app.get("/find-customer/:customer_id", async(req, res) => {
+
+  const customer_id = req.params.customer_id
+
+  const customers = await stripe.customers.list()
+
+  const findCustomer = (customers) => {
+    return  customers.find(customer => {
+      return customer.id === customer_id
+    })
+  }
+
+  const currCustomer = findCustomer(customers.data)
+
+  const customer_card = await stripe.customers.listSources(
+    customer_id,
+    {object: 'card', limit: 3},
+    function(err, cards) {
+      console.log(cards)
+    }
+  )
+
+  res.send(findCustomer(customers.data))
+})
 // Challenge section 3: '/schedule-lesson'
 // Authorize a payment for a lesson
 //

@@ -21,6 +21,7 @@ const Lessons = () => {
   const [sessions, setSessions] = useState([]); //info about available sessions
   const [selected, setSelected] = useState(-1); //index of selected session
   const [details, setDetailes] = useState(""); //details about selected session
+  const [date, setDate] = useState("");
 
   //format session's date
   const formatSession = (index, id, session, time) => {
@@ -41,6 +42,7 @@ const Lessons = () => {
     items[index].selected = "selected";
     setSelected(index);
     setSessions(items);
+    setDate(items[index].title)
     setDetailes(
       `You have requested a lesson for ${items[index].title} Please complete the registration form to reserve your lesson.`
     );
@@ -62,6 +64,7 @@ const Lessons = () => {
     setSessions(sessions.concat(items));
   }, []);
 
+
   return (
     <main className="main-lessons">
       <div className="sr-title">
@@ -74,7 +77,7 @@ const Lessons = () => {
         {
           //Component to process user info for registration.
         }
-        <RegistrationForm selected={selected} details={details} />
+        <RegistrationForm selected={selected} details={details} date={date}/>
         {
           //Generate HTML for each session.
         }
